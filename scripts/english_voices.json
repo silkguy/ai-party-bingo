@@ -1,0 +1,74 @@
+[
+  {
+    "id": "en_US-lessac-medium",
+    "label": "Lessac \u00b7 English (US)",
+    "files": [
+      {
+        "remote": "en/en_US/lessac/medium/en_US-lessac-medium.onnx",
+        "local": "en_US-lessac-medium.onnx",
+        "size_bytes": 63201294,
+        "md5_digest": "2fc642b535197b6305c7c8f92dc8b24f"
+      },
+      {
+        "remote": "en/en_US/lessac/medium/en_US-lessac-medium.onnx.json",
+        "local": "en_US-lessac-medium.onnx.json",
+        "size_bytes": 7010,
+        "md5_digest": "46e565a656f76b42b588d822025ed439"
+      },
+      {
+        "remote": "en/en_US/lessac/medium/MODEL_CARD",
+        "local": "en_US-lessac-medium.MODEL_CARD",
+        "size_bytes": 351,
+        "md5_digest": "42f2dd4a98149e12fc70b301d9579dfd"
+      }
+    ]
+  },
+  {
+    "id": "en_US-ryan-medium",
+    "label": "Ryan \u00b7 English (US)",
+    "files": [
+      {
+        "remote": "en/en_US/ryan/medium/en_US-ryan-medium.onnx",
+        "local": "en_US-ryan-medium.onnx",
+        "size_bytes": 63201294,
+        "md5_digest": "8f06d3aff8ded5a7f13f907e6bec32ac"
+      },
+      {
+        "remote": "en/en_US/ryan/medium/en_US-ryan-medium.onnx.json",
+        "local": "en_US-ryan-medium.onnx.json",
+        "size_bytes": 7008,
+        "md5_digest": "6222797bca87b2a799ef0ed2d2f66adf"
+      },
+      {
+        "remote": "en/en_US/ryan/medium/MODEL_CARD",
+        "local": "en_US-ryan-medium.MODEL_CARD",
+        "size_bytes": 306,
+        "md5_digest": "79d9200481a9dcabfa1803cb9e31c28a"
+      }
+    ]
+  },
+  {
+    "id": "en_GB-alan-medium",
+    "label": "Alan \u00b7 English (UK)",
+    "files": [
+      {
+        "remote": "en/en_GB/alan/medium/en_GB-alan-medium.onnx",
+        "local": "en_GB-alan-medium.onnx",
+        "size_bytes": 63201294,
+        "md5_digest": "8f6b35eeb8ef6269021c6cb6d2414c9b"
+      },
+      {
+        "remote": "en/en_GB/alan/medium/en_GB-alan-medium.onnx.json",
+        "local": "en_GB-alan-medium.onnx.json",
+        "size_bytes": 7013,
+        "md5_digest": "8927af81e8b16650fb7c9593464daa6e"
+      },
+      {
+        "remote": "en/en_GB/alan/medium/MODEL_CARD",
+        "local": "en_GB-alan-medium.MODEL_CARD",
+        "size_bytes": 320,
+        "md5_digest": "24a2232470ca1be071debf53c984666e"
+      }
+    ]
+  }
+]

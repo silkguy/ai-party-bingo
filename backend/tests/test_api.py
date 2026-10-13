@@ -59,3 +59,31 @@ def test_built_frontend_is_served(module):
         assert response.status_code==200
         assert 'AI Bingo Party' in response.text
         assert '/assets/' in response.text
+
+def test_three_new_voices_and_piper_command(module,monkeypatch,tmp_path):
+    import wave
+    root=tmp_path/'voices';root.mkdir()
+    for voice in module.VOICE_LABELS:
+        (root/(voice+'.onnx')).write_bytes(b'mock model')
+        (root/(voice+'.onnx.json')).write_text('{}')
+    monkeypatch.setenv('PIPER_VOICE_DIR',str(root))
+    command=['game-python','-m','piper']
+    monkeypatch.setattr(module,'piper_command',lambda:command)
+    calls=[]
+    def render(args,**kwargs):
+        calls.append(args)
+        assert args[:3]==command
+        output=args[args.index('--output_file')+1]
+        with wave.open(output,'wb') as audio:
+            audio.setnchannels(1);audio.setsampwidth(2);audio.setframerate(22050);audio.writeframes(b'\0\0'*100)
+    monkeypatch.setattr(module.subprocess,'run',render)
+    with TestClient(module.app) as client:
+        voices=client.get('/api/voices').json()
+        assert voices['piperAvailable']
+        assert set(voices['voices'])==set(module.VOICE_LABELS)
+        assert voices['labels']['en_US-ryan-medium']=='Ryan · English (US)'
+        payload={'text':'Hello party','voice':'en_US-ryan-medium'}
+        response=client.post('/api/speech',json=payload)
+        assert response.status_code==200 and response.content.startswith(b'RIFF')
+        assert client.post('/api/speech',json=payload).status_code==200
+        assert len(calls)==1

@@ -22,6 +22,8 @@ ollama pull qwen3:4b
 .venv\Scripts\python.exe launcher.py
 ```
 
+If you already have the game installed but see **Model missing**, run `ollama pull qwen3:4b` and wait for it to finish, or double-click the included `install_model.bat`. Then use Settings → AI → Check Ollama / Retry and press Resume. Settings → AI also lets you choose a model already downloaded in Ollama.
+
 Later, double-click `start.bat`. Ollama's desktop app normally starts its server automatically. If it is stopped, run `ollama serve` in a separate terminal.
 
 ## Install — Linux / macOS
@@ -73,6 +75,30 @@ Use the fullscreen button or the browser's F11 shortcut. Escape exits applicatio
 
 Browser SpeechSynthesis is the zero-install fallback. Install system voices using your OS settings. Local voices are labeled where the browser reports them. Voice availability and offline support vary by browser and OS. No voices? Disable speech; text gameplay still works.
 
+### Install three additional English voices
+
+On Windows, double-click **`install_english_voices.bat`** in your existing game folder. It installs optional `piper-tts==1.4.2` in your game's virtual environment and downloads three actual English voice models:
+
+| Voice | Accent | Model |
+| --- | --- | --- |
+| Lessac | English (US) | `en_US-lessac-medium` |
+| Ryan | English (US) | `en_US-ryan-medium` |
+| Alan | English (UK) | `en_GB-alan-medium` |
+
+Keep the installer open until it says Done. Download size is about **190 MB for the voices**, plus Piper's dependencies; internet is only required for this installation. The installer verifies each file's size and checksum against the published Piper catalog, retains each publisher model card, and reuses successfully installed files on retry. Model binaries are downloaded from the official Piper voice repository on Hugging Face and are not bundled in the GitHub ZIP. Each voice's license/model card is saved beside it under `voices/`.
+
+Restart `start.bat` and press **Ctrl+F5** in the browser. In Settings → Audio, enable speech and choose **Auto** or **Piper**. In Settings → Bots, assign the new **Piper · Lessac**, **Piper · Ryan**, and **Piper · Alan** voices to your bots. Existing English/Polish system voices remain available. The browser cannot install new Windows system voices by itself; these three additional voices use local Piper audio instead.
+
+Linux/macOS can use the same installer:
+
+```sh
+.venv/bin/python scripts/install_english_voices.py
+```
+
+The game discovers Piper in its own Python environment without requiring you to activate `.venv`. Windows Python 3.13 package compatibility was checked via dependency resolution; other platforms depend on wheel availability. If installation fails, browser voices remain available and the installer displays the error.
+
+### Other Piper voices
+
 Optional Piper:
 
 1. Install a compatible Piper executable from https://github.com/OHF-Voice/piper1-gpl or use `python -m pip install piper-tts` in a compatible Python environment. Python 3.13 wheel availability varies by platform. Piper can be installed in a separate compatible environment; make its `piper` executable available on PATH when launching the game.
@@ -89,6 +115,7 @@ Keep this app bound to loopback. It has no authentication and is intended for pe
 
 ## Troubleshooting
 
+- **Model missing:** Ollama is running but the selected model is not downloaded. Open a terminal, run `ollama pull qwen3:4b`, and wait for success. On Windows you can also double-click `install_model.bat`. If you already downloaded a different model, choose it in Settings → AI, check Ollama, then Resume.
 - **Local AI offline:** use Settings → AI → Check Ollama / Retry. Run `ollama serve`; verify URL and download the configured model with `ollama pull qwen3:4b`.
 - **Slow generation:** disable thinking, reduce response tokens/history, lower sentences per turn, or run Ollama on supported GPU hardware. The nonstreaming API keeps one whole turn coherent and shows Thinking while waiting (180-second timeout). The UI remains usable.
 - **Bad JSON / empty response:** the app shows a retryable error and pauses. Resume retries with a new request. Hidden `<think>` content is removed; it is never rendered.

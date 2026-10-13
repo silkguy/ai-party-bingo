@@ -3,7 +3,6 @@ import hashlib
 import json
 import os
 import random
-import shutil
 import subprocess
 from pathlib import Path
 import httpx
@@ -14,6 +13,7 @@ from pydantic import BaseModel, Field
 from .services import rules
 from .services.ollama import generate
 from .services.storage import Storage
+from .services.tts import piper_command, VOICE_LABELS
 
 app=FastAPI(title='AI Bingo Party — local API')
 storage=Storage()
@@ -38,7 +38,7 @@ async def health(req: Request):
             response.raise_for_status()
         models=[m['name'] for m in response.json().get('models',[])]
         name=req.settings.get('model','qwen3:4b')
-        return {'ok':name in models,'models':models,'message':'Ready for a local party.' if name in models else 'Model missing. Run: ollama pull '+name}
+        return {'ok':name in models,'models':models,'message':'Ready for a local party.' if name in models else f"Model '{name}' is not downloaded. Run: ollama pull {name}, wait for completion, then retry. Or choose a downloaded model in Settings > AI."}
     except Exception:
         return {'ok':False,'models':[],'message':'Cannot reach Ollama. Install Ollama, run ollama serve, then ollama pull qwen3:4b. Check your server URL and retry.'}
 @app.post('/api/pool')
@@ -100,7 +100,7 @@ async def save(kind: str,name: str,value: dict):
 @app.get('/api/voices')
 async def voices():
     root=Path(os.getenv('PIPER_VOICE_DIR','voices'))
-    return {'piperAvailable':bool(shutil.which('piper')),'voices':[p.stem for p in root.glob('*.onnx') if p.with_suffix('.onnx.json').exists()]}
+    return {'piperAvailable':bool(piper_command()),'voices':[p.stem for p in root.glob('*.onnx') if p.with_suffix('.onnx.json').exists()],'labels':VOICE_LABELS}
 class Speech(BaseModel):
     text: str = Field(max_length=6000)
     voice: str
@@ -109,13 +109,14 @@ class Speech(BaseModel):
 async def speech(req: Speech):
     root=Path(os.getenv('PIPER_VOICE_DIR','voices')).resolve()
     model=root/(req.voice+'.onnx')
-    if model.parent!=root or not model.exists() or not shutil.which('piper'):
+    command=piper_command()
+    if model.parent!=root or not model.exists() or not model.with_suffix('.onnx.json').exists() or not command:
         raise HTTPException(503,'Piper voice unavailable; select an installed browser voice.')
     key=hashlib.sha256((req.text+req.voice+str(req.rate)).encode()).hexdigest()
     cache=storage.path/'audio'; cache.mkdir(exist_ok=True); path=cache/(key+'.wav')
     if not path.exists():
         def render():
-            subprocess.run(['piper','--model',str(model),'--output_file',str(path),'--length_scale',str(1/req.rate)],input=req.text,text=True,check=True,timeout=60,capture_output=True)
+            subprocess.run([*command,'--model',str(model),'--output_file',str(path),'--length_scale',str(1/req.rate)],input=req.text,text=True,check=True,timeout=60,capture_output=True)
         try: await asyncio.to_thread(render)
         except Exception:
             path.unlink(missing_ok=True)

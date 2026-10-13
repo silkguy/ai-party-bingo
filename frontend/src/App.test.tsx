@@ -46,3 +46,24 @@ describe('spin wheel API',()=>{
   await waitFor(()=>expect(fetch).toHaveBeenCalledWith('/api/spin',expect.objectContaining({method:'POST'})));
  });
 });
+
+describe('local model and extra voice setup',()=>{
+ it('offers downloaded models and three English Piper choices',async()=>{
+  vi.mocked(fetch).mockImplementation((url)=>{
+   const path=String(url);let data:unknown={};
+   if(path.endsWith('/catalog'))data={personalities:{Nerd:'Nerd'},topics:[]};
+   if(path.endsWith('/health'))data={ok:false,message:'Model missing',models:['qwen3:latest']};
+   if(path.endsWith('/voices'))data={piperAvailable:true,voices:['en_US-lessac-medium','en_US-ryan-medium','en_GB-alan-medium'],labels:{'en_US-lessac-medium':'Lessac · English (US)','en_US-ryan-medium':'Ryan · English (US)','en_GB-alan-medium':'Alan · English (UK)'}};
+   return Promise.resolve(new Response(JSON.stringify(data)));
+  });
+  render(<App/>);
+  fireEvent.click(screen.getByTitle('Settings'));
+  await waitFor(()=>expect(screen.getByLabelText('Downloaded Ollama models')).toBeTruthy());
+  fireEvent.change(screen.getByLabelText('Downloaded Ollama models'),{target:{value:'qwen3:latest'}});
+  expect((screen.getByLabelText('Model') as HTMLInputElement).value).toBe('qwen3:latest');
+  fireEvent.click(screen.getByRole('button',{name:'Bots'}));
+  await waitFor(()=>expect(screen.getByRole('option',{name:'Piper · Lessac · English (US)'})).toBeTruthy());
+  expect(screen.getByRole('option',{name:'Piper · Ryan · English (US)'})).toBeTruthy();
+  expect(screen.getByRole('option',{name:'Piper · Alan · English (UK)'})).toBeTruthy();
+ });
+});
