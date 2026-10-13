@@ -3,7 +3,7 @@
 Validated on Linux with Python 3.13.5 and Node.js 24.
 
 - Backend: **19 tests passed** using pytest. Probability and pure rules use deterministic seeded samples. API tests use FastAPI's test client with mocked Ollama generation; the board secrecy and request serialization contracts are explicitly checked.
-- Frontend: **15 tests passed** using Vitest, including React DOM tests for rapid controls, pause/resume, ignoring stale results after Stop, timer pause/expiry and opt-in defaults, immediate speech pause/resume, preserving speech during long pauses, and speech queue cancellation/timeouts.
+- Frontend: **16 tests passed** using Vitest, including React DOM tests for rapid controls, pause/resume, ignoring stale results after Stop, timer pause/expiry and opt-in defaults, immediate speech pause/resume, preserving speech during long pauses, and speech queue cancellation/timeouts.
 - TypeScript compile and Vite production build passed. The production bundle is included under `frontend/dist`.
 - Static frontend serving through FastAPI verified by integration test.
 
