@@ -2,7 +2,7 @@
 
 Validated on Linux with Python 3.13.5 and Node.js 24.
 
-- Backend: **28 tests passed** using pytest. Probability and pure rules use deterministic seeded samples. API tests use FastAPI's test client with mocked Ollama generation; the board secrecy and request serialization contracts are explicitly checked.
+- Backend: **45 tests passed** using pytest. Probability and pure rules use deterministic seeded samples. API tests use FastAPI's test client with mocked Ollama generation; the board secrecy and request serialization contracts are explicitly checked. Ollama adapter tests cover thinking-only output, empty/missing message fields, truncated JSON, bounded retry, no-thinking flags, output budgets, hidden reasoning, larger topic lists and missing-model errors without retry.
 - Frontend: **17 tests passed** using Vitest, including React DOM tests for rapid controls, pause/resume, ignoring stale results after Stop, timer pause/expiry and opt-in defaults, immediate speech pause/resume, preserving speech during long pauses, and speech queue cancellation/timeouts.
 - TypeScript compile and Vite production build passed. The production bundle is included under `frontend/dist`.
 - Static frontend serving through FastAPI verified by integration test.

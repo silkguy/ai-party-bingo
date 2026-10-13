@@ -70,11 +70,16 @@ def chaos_event(frequency: str, previous: str | None, rng=random) -> str | None:
     return rng.choice([e for e in CHAOS if e != previous]) if rng.random()<chance else None
 def relationship(score: int, stance: str, intensity: float) -> int:
     return max(-100, min(100, score + round({'agree':6,'disagree':-8,'neutral':0}.get(stance,0)*intensity)))
-def clean_response(text: str) -> str:
-    text = re.sub(r'<think>.*?</think>', '', text, flags=re.S)
-    if '<think>' in text:
-        text = text.split('<think>')[0]
+def clean_response(text: str, max_length: int = 6000) -> str:
+    if not isinstance(text, str):
+        raise ValueError('Ollama returned a non-text final response.')
+    text = re.sub(r'<think>.*?</think>', '', text, flags=re.S | re.I)
+    unfinished = re.search(r'<think>', text, flags=re.I)
+    if unfinished:
+        text = text[:unfinished.start()]
     text = text.strip()
-    if not text or len(text)>6000:
-        raise ValueError('Ollama returned an empty or oversized final response. Retry the turn.')
+    if not text:
+        raise ValueError('Ollama returned no final answer (it may have used the token budget for thinking).')
+    if len(text) > max_length:
+        raise ValueError(f'Ollama returned a final response longer than {max_length} characters.')
     return text

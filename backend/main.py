@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from .services import rules
-from .services.ollama import generate
+from .services.ollama import generate, TURN_SCHEMA
 from .services.storage import Storage
 from .services.tts import piper_command, VOICE_LABELS
 
@@ -80,7 +80,7 @@ async def turn(req: Request):
             relations=s.get('relationships',{}) if settings.get('clashes',True) else {}
             system=f"You are {bot['name']}. Personality: {bot['description']}. Discuss {s.get('topic')}, category {s.get('category')}. Use {settings.get('sentences',3)} short sentences. Stay in character and on topic. Respond to recent messages, avoid repetition, introductions and role labels. Never speak for others or mention game mechanics. Return JSON: {{\"message\":\"your dialogue\",\"stance\":\"agree/disagree/neutral\"}}. Stance describes your response to the latest speaker."
             prompt=json.dumps({'subject':subject,'direction':action,'recent':[{ 'speaker':m['name'],'message':m['message']} for m in recent], 'relationships':relations,'roster':[{ 'id':b['id'],'name':b['name']} for b in bots],'earlierSubjects':list(dict.fromkeys(m['subject'] for m in history[:-int(settings.get('memory',12))]))[-8:],'event':event,'instructions':'If personality switch, reverse your usual behavior for this turn only. Keep all events harmless.'})
-            data=await generate(settings,system,prompt,True)
+            data=await generate(settings,system,prompt,TURN_SCHEMA)
             message=rules.clean_response(data.get('message',''))
             if settings.get('clashes',True) and target:
                 key='|'.join(sorted([bot['id'],target]))
