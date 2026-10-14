@@ -7,3 +7,8 @@ voices/
 *.zip
 
 *.tsbuildinfo
+# Ship factual datasets; ignore only runtime state, not backend/data.
+!backend/data/
+backend/data/*
+!backend/data/pokedex.json
+!backend/data/POKEAPI_LICENSE.md

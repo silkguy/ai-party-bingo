@@ -55,21 +55,57 @@ In another terminal at the project root:
 
 Windows: substitute `.venv\Scripts\python.exe`. The Vite development URL is http://localhost:5173 and `/api` is proxied to FastAPI. Rebuild with `npm run build` in `frontend` to update the launcher version.
 
-## Playing
+## Playing the major update
 
-1. Spin the wheel (each of 3, 4, 5 and 6 bots has 25% probability).
-2. Customize names, colors, descriptions, roles and voices. Generate custom personalities with Ollama, or choose ten built-in roles.
-3. Choose a topic/category and review its pool. Four curated character datasets ship locally. Custom topics use Ollama and are **not fact-checked**. Edit/import one name per line, optionally with aliases separated by `|`.
-4. Generate a board, lock squares for regeneration, or clear it and enter 25 unique custom squares. Enable an optional free center. Save/load board presets.
-5. Start the conversation. Manually toggle marks or enable separate detection/auto-mark options. Bots can discuss subjects from the whole pool, including names absent from your board.
+Setup is **spin → mode → bots/relationships → topic/pool → board, line target and optional timer → play**. Choose 1–12 distinct bingo lines to win. Mode, board rules, target and time limit are fixed for a round; Replay/New Party creates another.
 
-Settings persist; changing them does not restart the party. Pause allows an in-progress AI request to finish its turn but schedules no further turn; speech pauses immediately and resumes from the same point where supported. Enable Cancel speech on pause in Audio to cancel it instead. Resume continues. Next Bot requests one turn while paused. Skip Message reveals text and stops current speech; it does not cancel Ollama computation. Stop ignores any stale turn response and cancels speech. New Party returns to setup; Replay Topic retains your crew and board. Refresh restores progress paused. All AI turns are serialized on both client and backend.
+### Modes and marking
 
-### Optional countdown timer
+- **Normal:** personality-driven discussion with no special chaos events. A square can only be marked after a bot actually mentions its entry. An unmentioned mark loses immediately.
+- **Chaos:** the same rules with occasional arguments, rankings, alliances and other events. Low/Medium/High frequency is selected on the mode screen (5%/15%/30% per turn).
+- **The Impostor:** one hidden impostor with 3–5 bots, two with 6. Python assigns/stores roles privately. Only an **innocent** mention makes a square safe. An impostor-only or unmentioned mark loses immediately.
 
-Open Settings → Timer and enable the game timer (it is **off by default**). Enter any positive duration using hours, minutes and seconds. The countdown starts with Start/Resume, pauses immediately with playback, and stops dialogue and speech at zero. A live remaining-time indicator and Reset timer button appear in the party room. Timer configuration and remaining time persist in saves; refresh keeps playback paused. Changing the configured duration takes effect on Reset or the next round. Resume after expiry starts a fresh countdown.
+In Impostor mode, **right-click a square** to accuse a specific bot. On touch devices, enable **Accuse (touch)** and tap a square. The accusation succeeds only if that exact impostor made a deliberately deceptive mention of the selected entry. Accusing an innocent, an impostor without that evidence, or an unmentioned entry loses immediately. Cancel has no penalty. Correct accusations flag the square, reveal/eliminate the impostor, and remove them from future dialogue. Flags do not automatically mark squares. An innocent later mention makes an entry safe without erasing evidence of an earlier lie.
 
-Use the fullscreen button or the browser's F11 shortcut. Escape exits application fullscreen. The interface stacks panels on small screens.
+Normal/Chaos victory requires the line target. Impostor victory requires **both the line target and every impostor eliminated**. Remaining innocent bots continue until both are met. Enabled timers cause a loss if victory is incomplete when time expires. Won/lost rounds stop; Replay begins a fresh round.
+
+There are **no mention chips, eligible-square highlights, automatic answer lists or auto-marking**. Python still matches actual text case-insensitively with word boundaries and unambiguous curated/user-supplied aliases. Ellen can match Ellen Joe. Generic first words are not invented aliases: “great” does not mean Great Tusk.
+
+### Playback and speaker choice
+
+Start/Resume runs dialogue. Pause interrupts speech immediately and freezes server time; compatible audio resumes from the same point. Audio → Cancel speech on pause cancels it instead. An in-progress AI request may finish while paused, but no next turn is scheduled. Stop cancels speech and ignores stale results. Skip reveals the text and cancels current speech. Next Bot requests one turn in automatic mode. Only one AI turn/poll runs at a time per round, and normal progression waits for audio completion.
+
+Enable **Manual Speaker Selection** in Gameplay settings or board setup to wait for a choice after each turn. Buttons show active bots except the last ordinary speaker. **RANDOM** selects an eligible bot. Queued player questions still get one individual answer per selected recipient.
+
+**Change subject next turn** works in both modes. It stays enabled after failed generation and clears after a successful different subject. If no alternative exists, the app explains that the pool needs more entries. Default transition weights are 60% close relation, 25% weaker relation and 15% another subject. Evolution/faction/type connections inform choices; overused subjects receive lower probability rather than a permanent ban.
+
+### Questions, polls, relationships and replies
+
+**Ask the bots** targets one active bot or all active bots. Named opinion questions such as “Do you think Nicole is a good leader?” are allowed. Commands such as “Say Charmander,” board/role requests, and factual identification such as “Which Pokémon evolves into Charizard?” are rejected with a rewrite explanation. The validator is a conservative English ruleset, not perfect semantic classification. Answers are queued, preserve personality/history/relationships, then return to regular conversation. Player-written questions themselves never count as bot mentions.
+
+Enable **Allow Bot Polls** in Gameplay settings. After at least six turns since the last poll, each dialogue turn has a 15% chance to schedule one. Polls wait for current TTS to finish. Ollama proposes an opinion poll and each active bot's choice/explanation; Python validates one vote per bot and counts totals. The creator can vote. Results name every voter. Disabled polls produce no new poll requests. Sequential voting may take longer on a CPU.
+
+Meet Your Bots and the Crew panel support friends (+50), enemies (−50) and neutral pairs. Personality Clashes uses those scores in dialogue. Lock a pair to keep its score fixed; unlocked scores change within −100…100 using model-reported agreement/disagreement. Starting choices, dynamic scores and locks persist. This is a game heuristic, not a reliable real-world sentiment classifier.
+
+Directed responses and question answers display a reply reference. Click it to scroll to and highlight the original message. Reply IDs survive saving/loading.
+
+### Pools and sourced knowledge
+
+The ZIP bundles **all 1,025 species in a pinned PokeAPI snapshot**, including default-form types, abilities, generations, species classifications and evolution relationships. Alternate/regional forms are not separate species. Standard Pokémon pools sample 60 entries from that complete offline collection. Regeneration favors entries not in the previous sample, preserves locked board entries in the pool, and makes **no Ollama request**. Pokémon type/generation subtopics, starter filters, Types and Abilities also use local data; empty unsupported filters produce an actionable error. A board samples 25 entries; bots can discuss the whole selected pool, including off-board names.
+
+Other curated media lists are finite. Custom topics build a larger validated cached collection through Ollama. Placeholder names such as “name” are rejected, invalid output gets bounded regeneration, and selection counts reflect actual entries. Regeneration samples from the cache; when an attempted expansion adds no new names, subsequent regeneration reuses that collection. Small datasets necessarily overlap; the app reports the limitation. AI-generated names still need human review and never become verified character biographies automatically.
+
+Before generation, local profiles provide concise facts. Pokémon facts come from the bundled dataset. A smaller curated ZZZ profile/faction map covers Ellen's shark Thiren identity, Ice/Attack role and Victoria Housekeeping membership, Nicole's leadership, and other base-agent facts. It is intentionally partial, not an exhaustive lore database. Innocent prompts use sourced facts; obvious positive type contradictions are checked/retried, but the small model can still make other factual mistakes. Impostor false claims are created by Python from known facts and recorded separately from accidental errors. Internal role/evidence/verification records never appear in ordinary API responses.
+
+Use **Import sourced knowledge (JSON/CSV)** on the topic screen. JSON accepts a list or `{ "entries": [...] }`; each profile needs a nonempty `name` and `source`. Optional lists include `types`, `abilities`, `facts`, `teammates` and `evolutionFamily`; CSV separates list values with `|`. Illustrative formats are in `examples/knowledge.json` and `.csv`—replace them with checked facts. Imports are user-provided, not independently fact-checked. Impostor mode currently derives checkable deliberate claims from sourced `types` or `faction` fields; provide those structured fields for custom topics. Imported profiles cannot override the verified Pokémon types in the bundled snapshot.
+
+### Timer, saves and upgrades
+
+The timer is **off by default**, configured before play as seconds on board setup or hours/minutes/seconds in Settings → Timer. Python measures elapsed monotonic time instead of counting browser ticks, so background throttling cannot grant extra time. Pause freezes the remaining time; Resume continues. Time limits cannot be reset/extended mid-round. At zero, failure to meet every victory condition is a loss.
+
+SQLite persists current/named rounds, hidden roles/evidence, remaining time, relationships/locks, question queues, polls and reply metadata. Browser storage holds public snapshots and an opaque session ID. Refresh restores paused. A fresh tab forks public progress into an independent round without pausing the original tab. Named loading creates a paused isolated copy with the same roles and evidence. **Keep `data/` when updating.** Legacy saves preserve crew/topic/board/settings but open in board setup for a fresh round: old client-owned marks cannot be validated retrospectively under the new rules.
+
+Fullscreen/F11, board presets and setup locks/shuffling/regeneration, PNG export, bot voices, sound effects, font/UI scaling and reduced motion remain available. Escape exits application fullscreen.
 
 ## Offline speech
 
@@ -109,19 +145,24 @@ Set `PIPER_VOICE_DIR` to a different folder if desired. Piper supports speed/vol
 
 ## Data and privacy
 
-`data/bingo.sqlite3` contains named game saves, board presets and generated pool cache. Browser localStorage holds the current game/settings. `data/audio/` is the bounded audio cache. Set `BINGO_DATA_DIR` to change backend storage location. All AI calls go to the Ollama URL in Settings (default `http://localhost:11434`); all model/voice assets are local. The model prompt includes personalities, subject, recent dialogue, earlier subject recap, relationships and chaos instructions, **never your board**. Mention matching uses actual response text and unambiguous aliases/first names with word boundaries; no fuzzy substring guessing. Model-reported stance influences bounded relationship updates; it is a game heuristic, not a reliable sentiment classifier.
+Runtime `data/bingo.sqlite3` holds rounds, caches, presets and imported knowledge. Private backend records contain roles, deliberate claims and per-message mention evidence. APIs serialize an explicit public allowlist and deny private save kinds. POSIX data-directory/database permissions are owner-only; Windows uses the user's folder permissions. The machine owner can inspect their own database: this personal local app is not an encrypted vault or a multiplayer anti-cheat service.
 
-Keep this app bound to loopback. It has no authentication and is intended for personal local use, not public server hosting. Saves are JSON in SQLite. Treat downloaded/custom saves as untrusted and do not edit database records manually.
+`backend/data/pokedex.json` is bundled **public factual data**, separate from runtime `data/`. Keep it when updating. Its source commit/scope are recorded in the file; `backend/data/POKEAPI_LICENSE.md` includes BSD license and attribution. `scripts/update_pokedex.py` rebuilds the pinned snapshot from free GitHub CSV data when internet is available. Ordinary gameplay never calls PokeAPI.
+
+`data/audio/` is the bounded Piper cache; `voices/` holds optional installed models. Browser storage contains no hidden role keys or generated audio. `BINGO_DATA_DIR` and `PIPER_VOICE_DIR` change runtime storage. All inference uses your Ollama URL (default `http://localhost:11434`). Prompts include subject, personalities, sourced facts, rolling context, questions/polls and selected instructions, **never the bingo board or eligible-square lists**.
+
+Keep the launcher bound to loopback. Opaque round IDs isolate sessions and are private access handles. There is no mandatory account, paid service or public game hosting.
 
 ## Troubleshooting
 
 - **Model missing:** Ollama is running but the selected model is not downloaded. Open a terminal, run `ollama pull qwen3:4b`, and wait for success. On Windows you can also double-click `install_model.bat`. If you already downloaded a different model, choose it in Settings → AI, check Ollama, then Resume.
 - **Local AI offline:** use Settings → AI → Check Ollama / Retry. Run `ollama serve`; verify URL and download the configured model with `ollama pull qwen3:4b`.
+- **Repeated dialogue:** normalized exact/near-sentence comparison and repeated phrases trigger one quality retry. Subject frequency weighting/cooldown prevents loops. Persistent repetition pauses with a useful error; Resume retries. Dialogue is not cached/reused.
 - **Slow generation:** disable thinking, reduce response tokens/history, lower sentences per turn, or run Ollama on supported GPU hardware. The nonstreaming API keeps one whole turn coherent and shows Thinking while waiting (180-second timeout per attempt). Invalid final output gets at most one automatic retry. The UI remains usable.
 - **Bad JSON / empty response:** the backend sends both Ollama’s `think: false` flag and Qwen3’s `/no_think` instruction when thinking is disabled. It reserves at least 512 generation tokens for dialogue (2048 for lists) and uses a JSON schema for dialogue. If the final answer is empty, truncated, or invalid, it retries once with thinking disabled and a larger token budget, preserving the selected bot and topic. It never displays `message.thinking` or `<think>` content. If both attempts fail, playback pauses with an explanation. Keep Enable thinking off, update Ollama if necessary, then Resume. Old saved token settings are normalized automatically; you do not need to clear saves.
 - **Too few pool entries:** expand the category or import real entries; duplicates are removed. Do not fill a real-media pool with invented names.
 - **Speech failure:** choose a local browser voice, install Piper correctly, or disable TTS. Autoplay restrictions may require another click on Start.
-- **Save corruption:** named saves with an invalid board are rejected. If the current browser save is damaged, clear this origin's localStorage in browser developer tools (this removes current progress/settings but leaves SQLite saves).
+- **Save corruption:** named saves with an invalid board are rejected. If the current browser save is damaged, clear this origin's localStorage and sessionStorage in browser developer tools (this removes current progress/settings but leaves SQLite saves).
 - **Ports occupied:** stop the older instance. The launchers assume port 8000, and Vite proxies to that port.
 
 ## Verification
@@ -133,15 +174,17 @@ npm test
 npm run build
 ```
 
-Tests cover probability distributions, nonrepeating speakers, direction selection, all bingo lines, word boundaries and ambiguous aliases, unique pools, chaos frequency/nonrepetition, bounded relationships, SQLite roundtrips, Ollama response validation, prompt board secrecy, concurrent requests, pause/resume, stale results after stop, rapid controls and speech cancellation/timeouts. Tests use a fake Ollama response only in the test suite. Real game dialogue always requires Ollama. See `VERIFICATION.md` for this delivery's actual results and limits.
+Tests use mocked Ollama only in the test suite. Coverage includes quality/catchphrases, cooldown/transitions, complete offline dataset, schema/placeholder repair, varied/locked sampling, aliases/word boundaries, server marks and line targets, role counts/non-disclosure, all accusation branches, multiple impostors, elimination/dual victory, timers, relationship locks, queued questions, polls/vote counting, isolated/deduplicated requests, save/load and TTS synchronization. `VERIFICATION.md` records actual checks and limitations. Live game dialogue always requires Ollama.
 
 ## Architecture and licenses
 
-- `backend/main.py`: asynchronous API, per-turn orchestration, health, generators, saves, optional Piper and static hosting.
-- `backend/services/rules.py`: deterministic-testable game rules and matching.
-- `backend/services/ollama.py`: local Ollama adapter.
-- `backend/services/storage.py`: SQLite persistence.
-- `frontend/src/App.tsx`: setup/game screens with reusable button, toggle and modal components.
-- `frontend/src/game.ts`, `speech.ts`, `types.ts`: board utilities, cancellable speech, typed data.
+- `backend/main.py`: asynchronous local APIs, voices/audio and static hosting.
+- `backend/services/rounds.py`: authoritative sessions, hidden roles/evidence, dialogue, polls/questions, timers, outcomes and saves.
+- `quality.py`, `questions.py`: repetition/cooldown and opinion-question rules.
+- `topics.py`, `knowledge.py`: validated collections, fresh sampling and sourced retrieval.
+- `rules.py`, `ollama.py`, `storage.py`, `tts.py`: matching/lines, inference recovery, SQLite and engine discovery.
+- `frontend/src/App.tsx`: preserved setup/settings, customization and legacy save migration.
+- `frontend/src/components/`: mode, relationship and round interfaces.
+- `speech.ts`, `types.ts`, `api.ts`: cancellable speech, typed public data and API adapter.
 
 Project code is MIT licensed. React, Vite, TypeScript, Tailwind CSS and Lucide are free open-source dependencies (Lucide: ISC; React/Vite/Tailwind: MIT; TypeScript: Apache-2.0). FastAPI is MIT licensed; Uvicorn and httpx are BSD licensed. Ollama and model weights have their own licenses; review the downloaded model's license. Piper's current implementation is GPL-3.0; optional voice datasets have individual licenses. No external fonts, images or paid assets are used. Sound effects are synthesized locally with Web Audio.

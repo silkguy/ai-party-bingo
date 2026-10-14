@@ -1,0 +1,11 @@
+{
+  "entries": [
+    {
+      "name": "Example Character",
+      "faction": "Guild of Dawn",
+      "facts": ["Uses a spear."],
+      "teammates": ["Example Teammate"],
+      "source": "Replace this with your checked source or your own fictional-world reference"
+    }
+  ]
+}

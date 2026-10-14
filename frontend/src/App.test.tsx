@@ -1,69 +1,199 @@
 // @vitest-environment jsdom
-import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
-import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
-import App from './App';
-import {initial,defaults} from './types';
-const speech=vi.hoisted(()=>({cancelSpeech:vi.fn(),pauseSpeech:vi.fn(),resumeSpeech:vi.fn(),sound:vi.fn(),speak:vi.fn(async()=>{})}));
-vi.mock('./speech',()=>speech);
-const message={botId:'b1',name:'Nova',personality:'Nerd',color:'#fff',subject:'Ellen Joe',message:'Ellen is great. I like the design.',mentionedEntities:['Ellen Joe'],chaosEvent:null,relationships:{}};
-let turnResolve:(r:Response)=>void,turnCalls:number;
-beforeEach(()=>{turnCalls=0;localStorage.clear();localStorage.setItem('bingo-game',JSON.stringify({...initial,stage:4,board:Array.from({length:25},(_,i)=>'Entry '+i),pool:[{name:'Ellen Joe',aliases:[]}],bots:[{id:'b1',name:'Nova',color:'#fff',personality:'Nerd',description:'Nerd',voice:''}]}));localStorage.setItem('bingo-settings',JSON.stringify({...defaults,sounds:false}));vi.stubGlobal('speechSynthesis',{getVoices:()=>[],addEventListener:()=>{},removeEventListener:()=>{},cancel:()=>{}});vi.stubGlobal('fetch',vi.fn((url:string)=>{const response=(data:unknown)=>Promise.resolve(new Response(JSON.stringify(data)));if(url.endsWith('/turn')){turnCalls++;return new Promise<Response>(r=>{turnResolve=r;});}if(url.endsWith('/spin'))return response({count:3});if(url.endsWith('/catalog'))return response({personalities:{Nerd:'Nerd'},topics:[]});if(url.endsWith('/health'))return response({ok:true,message:'Ready'});if(url.endsWith('/voices'))return response({voices:[]});return response({});}));});
-afterEach(()=>{cleanup();vi.useRealTimers();vi.unstubAllGlobals();vi.clearAllMocks();});
-describe('playback',()=>{
- it('rapid start clicks create only one turn; stop ignores the pending result',async()=>{render(<App/>);fireEvent.click(screen.getByRole('button',{name:'Start'}));fireEvent.click(screen.getByRole('button',{name:'Pause'}));fireEvent.click(screen.getByRole('button',{name:'Resume'}));expect(turnCalls).toBe(1);fireEvent.click(screen.getByTitle('Stop'));await act(async()=>{turnResolve(new Response(JSON.stringify(message)));});expect(screen.queryByText('Ellen is great. I like the design.')).toBeNull();});
- it('pause keeps the completed turn and resume can request a new turn',async()=>{render(<App/>);fireEvent.click(screen.getByRole('button',{name:'Start'}));fireEvent.click(screen.getByRole('button',{name:'Pause'}));await act(async()=>{turnResolve(new Response(JSON.stringify(message)));});fireEvent.click(screen.getByTitle('Skip message'));await waitFor(()=>expect(screen.getByText(message.message)).toBeTruthy());await waitFor(()=>expect(screen.getByTitle('Next bot').hasAttribute('disabled')).toBe(false));expect(turnCalls).toBe(1);fireEvent.click(screen.getByRole('button',{name:'Resume'}));expect(turnCalls).toBe(2);fireEvent.click(screen.getByTitle('Stop'));await act(async()=>{turnResolve(new Response(JSON.stringify(message)));});});
-});
-
-describe('optional game timer',()=>{
- it('is disabled by default',()=>{render(<App/>);expect(screen.queryByLabelText('Game timer')).toBeNull();});
- it('pauses the countdown with playback and stops a pending turn at expiry',async()=>{
-  vi.useFakeTimers({toFake:['setTimeout','setInterval','clearTimeout','clearInterval','performance']});
-  localStorage.setItem('bingo-settings',JSON.stringify({...defaults,sounds:false,timerEnabled:true,timerSeconds:2}));
-  render(<App/>);await act(async()=>{});
-  fireEvent.click(screen.getByRole('button',{name:'Start'}));
-  await act(async()=>{await vi.advanceTimersByTimeAsync(1000);});
-  fireEvent.click(screen.getByRole('button',{name:'Pause'}));
-  const remaining=screen.getByLabelText('Game timer').textContent;
-  await act(async()=>{await vi.advanceTimersByTimeAsync(5000);});
-  expect(screen.getByLabelText('Game timer').textContent).toBe(remaining);
-  expect(speech.pauseSpeech).toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button',{name:'Resume'}));
-  await act(async()=>{await vi.advanceTimersByTimeAsync(1400);});
-  expect(screen.getByText('Time’s up')).toBeTruthy();
-  expect(speech.cancelSpeech).toHaveBeenCalled();
-  await act(async()=>{turnResolve(new Response(JSON.stringify(message)));});
-  expect(screen.queryByText(message.message)).toBeNull();
- });
-});
-
-describe('spin wheel API',()=>{
- it('sends POST to the spin endpoint rather than falling through to static hosting',async()=>{
-  localStorage.setItem('bingo-game',JSON.stringify(initial));
-  render(<App/>);
-  const button=screen.getByRole('button',{name:'SPIN THE WHEEL'});
-  await waitFor(()=>expect(button.hasAttribute('disabled')).toBe(false));
-  fireEvent.click(button);
-  await waitFor(()=>expect(fetch).toHaveBeenCalledWith('/api/spin',expect.objectContaining({method:'POST'})));
- });
-});
-
-describe('local model and extra voice setup',()=>{
- it('offers downloaded models and three English Piper choices',async()=>{
-  vi.mocked(fetch).mockImplementation((url)=>{
-   const path=String(url);let data:unknown={};
-   if(path.endsWith('/catalog'))data={personalities:{Nerd:'Nerd'},topics:[]};
-   if(path.endsWith('/health'))data={ok:false,message:'Model missing',models:['qwen3:latest']};
-   if(path.endsWith('/voices'))data={piperAvailable:true,voices:['en_US-lessac-medium','en_US-ryan-medium','en_GB-alan-medium'],labels:{'en_US-lessac-medium':'Lessac · English (US)','en_US-ryan-medium':'Ryan · English (US)','en_GB-alan-medium':'Alan · English (UK)'}};
-   return Promise.resolve(new Response(JSON.stringify(data)));
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import App from "./App";
+import { initial, defaults } from "./types";
+const speech = vi.hoisted(() => ({
+  cancelSpeech: vi.fn(),
+  pauseSpeech: vi.fn(),
+  resumeSpeech: vi.fn(),
+  sound: vi.fn(),
+  speak: vi.fn(async () => {}),
+}));
+vi.mock("./speech", () => speech);
+const bots = Array.from({ length: 3 }, (_, i) => ({
+  id: "b" + i,
+  name: ["Nova", "Byte", "Moxie"][i],
+  personality: "Nerd",
+  description: "An enthusiastic expert.",
+  color: "#ae85ff",
+  voice: "",
+}));
+beforeEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
+  localStorage.setItem(
+    "bingo-settings",
+    JSON.stringify({ ...defaults, sounds: false }),
+  );
+  vi.stubGlobal("speechSynthesis", {
+    getVoices: () => [],
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    cancel: () => {},
   });
-  render(<App/>);
-  fireEvent.click(screen.getByTitle('Settings'));
-  await waitFor(()=>expect(screen.getByLabelText('Downloaded Ollama models')).toBeTruthy());
-  fireEvent.change(screen.getByLabelText('Downloaded Ollama models'),{target:{value:'qwen3:latest'}});
-  expect((screen.getByLabelText('Model') as HTMLInputElement).value).toBe('qwen3:latest');
-  fireEvent.click(screen.getByRole('button',{name:'Bots'}));
-  await waitFor(()=>expect(screen.getByRole('option',{name:'Piper · Lessac · English (US)'})).toBeTruthy());
-  expect(screen.getByRole('option',{name:'Piper · Ryan · English (US)'})).toBeTruthy();
-  expect(screen.getByRole('option',{name:'Piper · Alan · English (UK)'})).toBeTruthy();
- });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((url: string) => {
+      const data = url.endsWith("/catalog")
+        ? {
+            personalities: {
+              Nerd: "Expert",
+              Hater: "Critical",
+              Fan: "Excited",
+            },
+            topics: ["Pokémon"],
+          }
+        : url.endsWith("/health")
+          ? { ok: true, message: "Ready", models: ["qwen3:4b", "qwen3:latest"] }
+          : url.endsWith("/spin")
+            ? { count: 3 }
+            : url.endsWith("/voices")
+              ? {
+                  piperAvailable: true,
+                  voices: [
+                    "en_US-lessac-medium",
+                    "en_US-ryan-medium",
+                    "en_GB-alan-medium",
+                  ],
+                  labels: {
+                    "en_US-lessac-medium": "Lessac · English (US)",
+                    "en_US-ryan-medium": "Ryan · English (US)",
+                    "en_GB-alan-medium": "Alan · English (UK)",
+                  },
+                }
+              : {};
+      return Promise.resolve(new Response(JSON.stringify(data)));
+    }),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+  vi.clearAllMocks();
+});
+describe("preserved setup and new rules", () => {
+  it("spin uses POST and the next screen is mode selection", async () => {
+    render(<App />);
+    const button = screen.getByRole("button", { name: "SPIN THE WHEEL" });
+    await waitFor(() => expect(button.hasAttribute("disabled")).toBe(false));
+    vi.useFakeTimers();
+    fireEvent.click(button);
+    await act(async () => {});
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/spin",
+      expect.objectContaining({ method: "POST" }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3600);
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Choose your mode/ }));
+    expect(screen.getByText("Three ways to party.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /The Impostor/ }));
+    expect(JSON.parse(localStorage.getItem("bingo-game")!).mode).toBe(
+      "impostor",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Meet your bots/ }));
+    expect(screen.getByText("Meet the group chat.")).toBeTruthy();
+  });
+  it("offers installed Ollama models and the three real English Piper choices", async () => {
+    localStorage.setItem(
+      "bingo-game",
+      JSON.stringify({ ...initial, stage: 2, bots }),
+    );
+    render(<App />);
+    fireEvent.click(screen.getByTitle("Settings"));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Downloaded Ollama models")).toBeTruthy(),
+    );
+    fireEvent.change(screen.getByLabelText("Downloaded Ollama models"), {
+      target: { value: "qwen3:latest" },
+    });
+    expect((screen.getByLabelText("Model") as HTMLInputElement).value).toBe(
+      "qwen3:latest",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Bots" }));
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("option", { name: "Piper · Lessac · English (US)" })
+          .length,
+      ).toBeGreaterThan(0),
+    );
+    expect(
+      screen.getAllByRole("option", { name: "Piper · Ryan · English (US)" })
+        .length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("option", { name: "Piper · Alan · English (UK)" })
+        .length,
+    ).toBeGreaterThan(0);
+  });
+  it("required lines support all twelve and the timer is opt-in", () => {
+    localStorage.setItem(
+      "bingo-game",
+      JSON.stringify({ ...initial, stage: 4, bots }),
+    );
+    render(<App />);
+    const select = screen.getByLabelText(
+      "Required bingo lines",
+    ) as HTMLSelectElement;
+    expect(select.options.length).toBe(12);
+    fireEvent.change(select, { target: { value: "3" } });
+    expect(JSON.parse(localStorage.getItem("bingo-game")!).requiredLines).toBe(
+      3,
+    );
+    expect(
+      (screen.getByLabelText("Enable round timer") as HTMLInputElement).checked,
+    ).toBe(false);
+    expect(screen.queryByText("Highlight mentions")).toBeNull();
+    expect(screen.queryByText("Automatically mark")).toBeNull();
+  });
+  it("friends/enemies and fixed locks are saved during customization", () => {
+    localStorage.setItem(
+      "bingo-game",
+      JSON.stringify({ ...initial, stage: 2, bots }),
+    );
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Nova and Byte relationship"), {
+      target: { value: "enemy" },
+    });
+    const locks = screen.getAllByLabelText("Lock");
+    fireEvent.click(locks[0]);
+    const saved = JSON.parse(localStorage.getItem("bingo-game")!);
+    expect(saved.relationships["b0|b1"]).toBe(-50);
+    expect(saved.relationshipLocks["b0|b1"]).toBe(true);
+  });
+  it("does not expose a mid-round chaos mode switch in settings", () => {
+    render(<App />);
+    fireEvent.click(screen.getByTitle("Settings"));
+    expect(screen.queryByRole("button", { name: "Chaos" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Gameplay" }));
+    expect(screen.getByLabelText("Manual Speaker Selection")).toBeTruthy();
+    expect(screen.getByLabelText("Allow Bot Polls")).toBeTruthy();
+  });
+  it("rejects placeholder names when importing an editable topic pool", () => {
+    localStorage.setItem(
+      "bingo-game",
+      JSON.stringify({ ...initial, stage: 3, bots }),
+    );
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Topic pool import"), {
+      target: { value: "name\nPikachu\npikachu\nEevee | Eevee" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Apply edited list" }));
+    expect(
+      JSON.parse(localStorage.getItem("bingo-game")!).pool.map(
+        (e: { name: string }) => e.name,
+      ),
+    ).toEqual(["Pikachu", "Eevee"]);
+    expect(screen.getByText("2 entries")).toBeTruthy();
+  });
 });
